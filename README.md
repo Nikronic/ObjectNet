@@ -31,12 +31,15 @@ accuracy gains from greatly increased depth, producing results
 substantially better than previous networks.
 
 Here is implementation structure they used in theirs paper
+
 ![compare-res-plain](wiki/img/compare-res.jpg)
 
 And they got this top-1 error rates:
+
 ![acc-res-plain](wiki/img/resplainacc.jpg)
 
 Because we are using resnet101, residual blocks constructed over Bottleneck block. Here is the structure:
+
 ![bottleneck](wiki/img/bottleneck.jpg)
 
 
@@ -63,18 +66,23 @@ the image.
 ![converting resnet to dilated resnet](wiki/img/dilation.jpg)
 
 The use of dilated convolutions can cause gridding artifacts.
+
 ![artifacts of dilation](wiki/img/artifacts.jpg)
 
 So they introduced three methods to remove this artifacts. Here is the structure of them:
+
 ![DRN-A, DRN-B and DRN-C](wiki/img/drna-drnb-drnc.jpg)
 
 Here is comparison of differenet dilated resnets based on error rates
+
 ![error rate of dilated resnet and original resnet](wiki/img/error-rate-dilation.jpg)
 
 And you can see the accuracy of this model in semantic segmentation on cityscapes dataset:
+
 ![accuracy in semantic segmentation on cityscapes dataset](wiki/img/semantic-acc-dilated.jpg)
 
 A sample comparison:
+
 ![output on real world dilated resnet semantic segmentation](wiki/img/semantic-sample.jpg)
 
 
@@ -124,6 +132,7 @@ We train our deeply supervised model using stochastic
 gradient descent.
 
 Here is top-1 and top-5 accuracies on places dataset:
+
 ![top-1 and top-5 accuracies on places dataset](wiki/img/top-accuracies-on-places-supervision.jpg)
 
 
