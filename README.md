@@ -40,17 +40,50 @@ Because we are using resnet101, residual blocks constructed over Bottleneck bloc
 ![bottleneck](wiki/img/bottleneck.jpg)
 
 
-## Pyramid Pooling
-Pyramid Scene Parsing Network [link to paper](https://arxiv.org/pdf/1612.01105.pdf)
+## Dilation
+Dilated Residual Networks [link to paper](https://arxiv.org/pdf/1705.09914.pdf)
+
+We show that dilated residual networks
+(DRNs) outperform their non-dilated counterparts in image
+classification without increasing the model’s depth or
+complexity. We then study gridding artifacts introduced by
+dilation, develop an approach to removing these artifacts
+(‘degridding’), and show that this further increases the performance
+of DRNs. In addition, we show that the accuracy
+advantage of DRNs is further magnified in downstream applications
+such as object localization and semantic segmentation.
+
+While convolutional networks have done well, the almost
+complete elimination of spatial acuity may be preventing
+these models from achieving even higher accuracy, for
+example by preserving the contribution of small and thin
+objects that may be important for correctly understanding
+the image.
+
+![converting resnet to dilated resnet](wiki/img/dilation.jpg)
+
+The use of dilated convolutions can cause gridding artifacts.
+![artifacts of dilation](wiki/img/artifacts.jpg)
+
+So they introduced three methods to remove this artifacts. Here is the structure of them:
+![DRN-A, DRN-B and DRN-C](wiki/img/drna-drnb-drnc.jpg)
+
+Here is comparison of differenet dilated resnets based on error rates
+![error rate of dilated resnet and original resnet](wiki/img/error-rate-dilation.jpg)
+
+And you can see the accuracy of this model in semantic segmentation on cityscapes dataset:
+![accuracy in semantic segmentation on cityscapes dataset](wiki/img/semantic-acc-dilated.jpg)
+
+A sample comparison:
+![output on real world dilated resnet semantic segmentation](wiki/img/semantic-sample.jpg)
 
 
 ## Supervision
 Training Deeper Convolutional Networks with Deep Supervision [link to paper](https://arxiv.org/pdf/1505.02496.pdf)
 
 
-## Dilation
-Dilated Residual Networks [link to paper](https://arxiv.org/pdf/1705.09914.pdf)
-
+## Pyramid Pooling
+Pyramid Scene Parsing Network [link to paper](https://arxiv.org/pdf/1612.01105.pdf)
 
 
 # Reference
