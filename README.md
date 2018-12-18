@@ -81,9 +81,56 @@ A sample comparison:
 ## Supervision
 Training Deeper Convolutional Networks with Deep Supervision [link to paper](https://arxiv.org/pdf/1505.02496.pdf)
 
+In order to train deeper networks, we propose to
+add auxiliary supervision branches after certain intermediate
+layers during training. We formulate a simple rule of
+thumb to determine where these branches should be added.
+The resulting deeply supervised structure makes the training
+much easier and also produces better classification results
+on ImageNet and the recently released, larger MIT
+Places dataset.
+
+Illustration of our deep models with 8 and 13 convolutional layers. The additional supervision loss branches
+are indicated by dashed red boxes. Xl denote the intermediate layer outputs and Wl are the weight matrices for each
+computational block. Blocks of the same type are shown in the same color. A legend below the network diagrams shows the
+internal structure of the different block types.
+
+![supervision structure](wiki/img/supervision.jpg)
+
+Loss functions:
+
+auxiliary loss
+ 
+![loss of supervision](wiki/img/loss-supervision.jpg)
+
+Note that this loss depends on W, not just Ws, because the
+computation of the feature map S8 involves the weights of
+the early convolutional layers W1; : : :W4.
+The combined loss function for the whole network is
+given by a weighted sum of the main loss L0(W) and the
+auxiliary supervision loss Ls(Ws):
+
+![overall loss of model with supervision](wiki/img/overall-loss-supervision.jpg)
+
+where alpha-t controls the trade-off between the two terms. In
+the course of training, in order to use the second term
+mainly as regularization, we adopt the same strategy as
+in [6], where alpha decays as a function of epoch t (with N
+being the total number of epochs):
+
+![regularization of supervision](wiki/img/regularization-supervision.jpg)
+
+We train our deeply supervised model using stochastic
+gradient descent.
+
+Here is top-1 and top-5 accuracies on places dataset:
+![top-1 and top-5 accuracies on places dataset](wiki/img/top-accuracies-on-places-supervision.jpg)
+
 
 ## Pyramid Pooling
 Pyramid Scene Parsing Network [link to paper](https://arxiv.org/pdf/1612.01105.pdf)
+
+
 
 
 # Reference
