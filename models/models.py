@@ -1,22 +1,25 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import torchvision
 from . import resnet
 from lib.nn import SynchronizedBatchNorm2d
 
 
-class SegmentationModule(nn.Module):
-    def __init__(self, net_enc, net_dec, crit, deep_sup_scale=None):
-        """
-        The semantic segmentation high level module. You can pass any model architecture as encoder or decoder to this
-         network
-         and enable deep supervision or not.
+class SegmentationModuleBase(nn.Module):
+    def __init__(self):
+        super(SegmentationModuleBase, self).__init__()
 
-        :param net_enc: encoder architecture of network
-        :param net_dec: decoder architecture of network
-        :param crit:
-        :param deep_sup_scale: weight of deep supervision technique loss if deep super vision is enabled.
-        """
+    def pixel_acc(self, pred, label):
+        _, preds = torch.max(pred, dim=1)
+        valid = (label >= 0).long()
+        acc_sum = torch.sum(valid * (preds == label).long())
+        pixel_sum = torch.sum(valid)
+        acc = acc_sum.float() / (pixel_sum.float() + 1e-10)
+        return acc
+
+
+class SegmentationModule(SegmentationModuleBase):
+    def __init__(self, net_enc, net_dec, crit, deep_sup_scale=None):
         super(SegmentationModule, self).__init__()
         self.encoder = net_enc
         self.decoder = net_dec
@@ -38,23 +41,26 @@ class SegmentationModule(nn.Module):
 
             acc = self.pixel_acc(pred, feed_dict['seg_label'])
             return loss, acc
-
-        # inference : we do not use super vision in testing phase. Actually, deep super vision technique works like a
-        #  regularization term.
+        # inference
         else:
             pred = self.decoder(self.encoder(feed_dict['img_data'], return_feature_maps=True), segSize=segSize)
             return pred
 
-    def pixel_acc(self, pred, label):
-        _, preds = torch.max(pred, dim=1)
-        valid = (label >= 0).long()
-        acc_sum = torch.sum(valid * (preds == label).long())
-        pixel_sum = torch.sum(valid)
-        acc = acc_sum.float() / (pixel_sum.float() + 1e-10)
-        return acc
+
+def conv3x3(in_planes, out_planes, stride=1, has_bias=False):
+    """3x3 convolution with padding"""
+    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
+                     padding=1, bias=has_bias)
 
 
-class ModelBuilder():
+def conv3x3_bn_relu(in_planes, out_planes, stride=1):
+    return nn.Sequential(
+        conv3x3(in_planes, out_planes, stride),
+        SynchronizedBatchNorm2d(out_planes),
+        nn.ReLU(inplace=True))
+
+
+class ModelBuilder:
     # custom weights initialization
     def weights_init(self, m):
         classname = m.__class__.__name__
@@ -64,22 +70,26 @@ class ModelBuilder():
             m.weight.data.fill_(1.)
             m.bias.data.fill_(1e-4)
 
-    def build_encoder(self, arch='resnet101dilated', weights=''):
+    def build_encoder(self, arch='resnet101dilated', fc_dim=512, weights=''):
         pretrained = True if len(weights) == 0 else False
-
+        arch = arch.lower()
         if arch == 'resnet101dilated':
-            orig_resnet = resnet.resnet101(pretrained=pretrained)
+            orig_resnet = resnet.__dict__['resnet101'](pretrained=pretrained)
             net_encoder = ResnetDilated(orig_resnet, dilate_scale=8)
         else:
             raise Exception('Architecture undefined!')
 
+        # net_encoder.apply(self.weights_init)
         if len(weights) > 0:
-            raise NotImplementedError('Custom weights not implemented.')
-        # TODO
-
+            print('Loading weights for net_encoder')
+            net_encoder.load_state_dict(
+                torch.load(weights, map_location=lambda storage, loc: storage), strict=False)
         return net_encoder
 
-    def build_decoder(self, arch='ppm_deepsup', fc_dim=512, num_class=150, weights='', use_softmax=False):
+    def build_decoder(self, arch='ppm_deepsup',
+                      fc_dim=512, num_class=150,
+                      weights='', use_softmax=False):
+        arch = arch.lower()
         if arch == 'ppm_deepsup':
             net_decoder = PPMDeepsup(
                 num_class=num_class,
@@ -94,14 +104,6 @@ class ModelBuilder():
             net_decoder.load_state_dict(
                 torch.load(weights, map_location=lambda storage, loc: storage), strict=False)
         return net_decoder
-
-
-def conv3x3_bn_relu(in_planes, out_planes, stride=1):
-    return nn.Sequential(
-        nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=False),
-        SynchronizedBatchNorm2d(out_planes),
-        nn.ReLU(inplace=True),
-    )
 
 
 class ResnetDilated(nn.Module):
@@ -157,14 +159,14 @@ class ResnetDilated(nn.Module):
         x = self.relu3(self.bn3(self.conv3(x)))
         x = self.maxpool(x)
 
-        x = self.layer1(x)
-        conv_out.append(x)
-        x = self.layer2(x)
-        conv_out.append(x)
-        x = self.layer3(x)
-        conv_out.append(x)
-        x = self.layer4(x)
-        conv_out.append(x)
+        x = self.layer1(x);
+        conv_out.append(x);
+        x = self.layer2(x);
+        conv_out.append(x);
+        x = self.layer3(x);
+        conv_out.append(x);
+        x = self.layer4(x);
+        conv_out.append(x);
 
         if return_feature_maps:
             return conv_out
@@ -173,7 +175,8 @@ class ResnetDilated(nn.Module):
 
 # pyramid pooling, deep supervision
 class PPMDeepsup(nn.Module):
-    def __init__(self, num_class=150, fc_dim=4096, use_softmax=False, pool_scales=(1, 2, 3, 6)):
+    def __init__(self, num_class=150, fc_dim=4096,
+                 use_softmax=False, pool_scales=(1, 2, 3, 6)):
         super(PPMDeepsup, self).__init__()
         self.use_softmax = use_softmax
 
@@ -189,7 +192,8 @@ class PPMDeepsup(nn.Module):
         self.cbr_deepsup = conv3x3_bn_relu(fc_dim // 2, fc_dim // 4, 1)
 
         self.conv_last = nn.Sequential(
-            nn.Conv2d(fc_dim + len(pool_scales) * 512, 512, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(fc_dim + len(pool_scales) * 512, 512,
+                      kernel_size=3, padding=1, bias=False),
             SynchronizedBatchNorm2d(512),
             nn.ReLU(inplace=True),
             nn.Dropout2d(0.1),
@@ -204,7 +208,7 @@ class PPMDeepsup(nn.Module):
         input_size = conv5.size()
         ppm_out = [conv5]
         for pool_scale in self.ppm:
-            ppm_out.append(F.interpolate(
+            ppm_out.append(nn.functional.interpolate(
                 pool_scale(conv5),
                 (input_size[2], input_size[3]),
                 mode='bilinear', align_corners=False))
@@ -213,9 +217,9 @@ class PPMDeepsup(nn.Module):
         x = self.conv_last(ppm_out)
 
         if self.use_softmax:  # is True during inference
-            x = F.interpolate(
+            x = nn.functional.interpolate(
                 x, size=segSize, mode='bilinear', align_corners=False)
-            x = F.softmax(x, dim=1)
+            x = nn.functional.softmax(x, dim=1)
             return x
 
         # deep sup
@@ -224,7 +228,7 @@ class PPMDeepsup(nn.Module):
         _ = self.dropout_deepsup(_)
         _ = self.conv_last_deepsup(_)
 
-        x = F.log_softmax(x, dim=1)
-        _ = F.log_softmax(_, dim=1)
+        x = nn.functional.log_softmax(x, dim=1)
+        _ = nn.functional.log_softmax(_, dim=1)
 
-        return (x, _)
+        return x, _

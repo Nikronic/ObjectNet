@@ -4,15 +4,55 @@ import torch
 import torch.nn as nn
 import math
 from lib.nn import SynchronizedBatchNorm2d
-from urllib.request import urlretrieve
 
-__all__ = ['resnet101']
+try:
+    from urllib import urlretrieve
+except ImportError:
+    from urllib.request import urlretrieve
 
-model_url = 'http://sceneparsing.csail.mit.edu/model/pretrained_resnet/resnet101-imagenet.pth'
+__all__ = ['resnet101']  # resnet101 is coming soon!
+
+model_urls = {
+    'resnet101': 'http://sceneparsing.csail.mit.edu/model/pretrained_resnet/resnet101-imagenet.pth'
+}
 
 
 def conv3x3(in_planes, out_planes, stride=1):
-    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=False)
+    "3x3 convolution with padding"
+    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
+                     padding=1, bias=False)
+
+
+class BasicBlock(nn.Module):
+    expansion = 1
+
+    def __init__(self, inplanes, planes, stride=1, downsample=None):
+        super(BasicBlock, self).__init__()
+        self.conv1 = conv3x3(inplanes, planes, stride)
+        self.bn1 = SynchronizedBatchNorm2d(planes)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv2 = conv3x3(planes, planes)
+        self.bn2 = SynchronizedBatchNorm2d(planes)
+        self.downsample = downsample
+        self.stride = stride
+
+    def forward(self, x):
+        residual = x
+
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.conv2(out)
+        out = self.bn2(out)
+
+        if self.downsample is not None:
+            residual = self.downsample(x)
+
+        out += residual
+        out = self.relu(out)
+
+        return out
 
 
 class Bottleneck(nn.Module):
@@ -23,10 +63,10 @@ class Bottleneck(nn.Module):
         self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)
         self.bn1 = SynchronizedBatchNorm2d(planes)
         self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride,
-                               padding=1, bias=False)  # we change this one in dilation (adding dilated block)
+                               padding=1, bias=False)
         self.bn2 = SynchronizedBatchNorm2d(planes)
-        self.conv3 = nn.Conv2d(planes, planes * self.expansion, kernel_size=1, bias=False)
-        self.bn3 = SynchronizedBatchNorm2d(planes * self.expansion)
+        self.conv3 = nn.Conv2d(planes, planes * 4, kernel_size=1, bias=False)
+        self.bn3 = SynchronizedBatchNorm2d(planes * 4)
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
         self.stride = stride
@@ -57,9 +97,8 @@ class Bottleneck(nn.Module):
 class ResNet(nn.Module):
 
     def __init__(self, block, layers, num_classes=1000):
-        super(ResNet, self).__init__()
-
         self.inplanes = 128
+        super(ResNet, self).__init__()
         self.conv1 = conv3x3(3, 64, stride=2)
         self.bn1 = SynchronizedBatchNorm2d(64)
         self.relu1 = nn.ReLU(inplace=True)
@@ -90,7 +129,8 @@ class ResNet(nn.Module):
         downsample = None
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = nn.Sequential(
-                nn.Conv2d(self.inplanes, planes * block.expansion, kernel_size=1, stride=stride, bias=False),
+                nn.Conv2d(self.inplanes, planes * block.expansion,
+                          kernel_size=1, stride=stride, bias=False),
                 SynchronizedBatchNorm2d(planes * block.expansion),
             )
 
@@ -124,11 +164,11 @@ def resnet101(pretrained=False, **kwargs):
     """Constructs a ResNet-101 model.
 
     Args:
-        pretrained (bool): If True, returns a model pre-trained on Places
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNet(Bottleneck, [3, 4, 23, 3], **kwargs)
     if pretrained:
-        model.load_state_dict(load_url(model_url), strict=False)
+        model.load_state_dict(load_url(model_urls['resnet101']), strict=False)
     return model
 
 
