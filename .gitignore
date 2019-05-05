@@ -105,3 +105,6 @@ venv.bak/
 
 # pretrained models files
 pretrained/
+ckpt/
+vis/
+log/

@@ -224,11 +224,11 @@ class PPMDeepsup(nn.Module):
 
         # deep sup
         conv4 = conv_out[-2]
-        _ = self.cbr_deepsup(conv4)
-        _ = self.dropout_deepsup(_)
-        _ = self.conv_last_deepsup(_)
+        ds = self.cbr_deepsup(conv4)
+        ds = self.dropout_deepsup(ds)
+        ds = self.conv_last_deepsup(ds)
 
         x = nn.functional.log_softmax(x, dim=1)
-        _ = nn.functional.log_softmax(_, dim=1)
+        ds = nn.functional.log_softmax(ds, dim=1)
 
-        return x, _
+        return x, ds
