@@ -1,4 +1,6 @@
 # ObjectNet
+Note I have cloned the [official PyTorch](https://github.com/hangzhaomit/semantic-segmentation-pytorch) implementation and just added a function to merge most common classes to reduce number of classes from 150 to 25.
+I could not address this modification in the title of the repo.
 
 ## ResNet101
 Deep Residual Learning for Image Recognition [link to paper](https://arxiv.org/pdf/1512.03385.pdf)
