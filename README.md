@@ -218,3 +218,9 @@ The result of PSPNet and other methods on CityScapes dataset in semantic segment
 Repository of models [link](https://github.com/CSAILVision/sceneparsing)
 
 Repository of pytorch implementation [link](https://github.com/hangzhaomit/semantic-segmentation-pytorch)
+
+# Citation
+Please cite this porject as:
+Mohammad Doosti Lakhani. (2020, May 21). Nikronic/ObjectNet: DOI Release (Version v0.1-alpha). Zenodo. http://doi.org/10.5281/zenodo.3838620
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3838620.svg)](https://doi.org/10.5281/zenodo.3838620)
