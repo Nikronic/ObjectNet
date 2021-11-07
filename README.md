@@ -221,6 +221,6 @@ Repository of pytorch implementation [link](https://github.com/hangzhaomit/seman
 
 # Citation
 Please cite this porject as:
-Mohammad Doosti Lakhani. (2020, May 21). Nikronic/ObjectNet: DOI Release (Version v0.1-alpha). Zenodo. http://doi.org/10.5281/zenodo.3838620
+Nikan Doosti. (2020). Nikronic/ObjectNet: DOI Release (v0.1-alpha). Zenodo. https://doi.org/10.5281/zenodo.3838620
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3838620.svg)](https://doi.org/10.5281/zenodo.3838620)
